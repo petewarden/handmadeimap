@@ -1,0 +1,57 @@
+HandmadeIMAP
+~~~~~~~~~~~~
+
+This collection implements the IMAP and POP3 protocols for accessing message information from 
+email servers using low-level socket code in PHP. 
+
+* Why is this different from the standard solution using the php-imap extension? *
+
+The flexibility of building the protocol interaction in PHP rather than compiling it into a C 
+extension allows:
+
+- Accessing Yahoo basic email accounts by implementing the Zimbra desktop variant of IMAP
+- Pulling down all recipients of a message without downloading the body
+- Possibly implementing extensions like Gmail's oAuth for IMAP
+
+* What are the downsides? *
+
+This is all production code I've been using in my Mailana product, so it only implements what I 
+need, and isn't particularly pretty or elegant. In particular it focuses on downloading message
+headers since that's what I've needed for my analytics, and has only been tested against Gmail, 
+Yahoo and Hotmail servers, so the protocol handling may fall down on other server implementations.
+
+* Why might you need this? *
+
+Does your web service import contacts to build a rudimentary social network for new users? You may 
+well get better results if you can figure out who your users real friends are, and who they just 
+met once at a trade show. Looking at their email patterns gives you an approximation of their 
+inner circle, giving you the information you need to build a better experience around things like 
+invitations and privacy defaults. There's obviously plenty of other use cases, but please do 
+remember your users are giving you access to very sensitive information!
+
+****************************
+ Licensed under the 2-clause (ie no advertising requirement) BSD license,
+ making it easy to reuse for commercial or GPL projects:
+ 
+ (c) Pete Warden <pete@petewarden.com> http://petewarden.typepad.com/ - Mar 11th 2010
+ 
+ Redistribution and use in source and binary forms, with or without modification, are
+ permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this 
+      list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice, this 
+      list of conditions and the following disclaimer in the documentation and/or 
+      other materials provided with the distribution.
+   3. The name of the author may not be used to endorse or promote products derived 
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+OF SUCH DAMAGE.

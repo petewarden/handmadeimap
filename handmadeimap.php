@@ -1,6 +1,6 @@
 <?php
 /** 
- * This class implements a subset of the IMAP protocol, using PHP's socket
+ * This module implements a subset of the IMAP protocol, using PHP's socket
  * interface rather than relying on an extension like php-imap. Why would
  * you want to do such a thing?
  *
@@ -25,16 +25,57 @@
  * It uses globals for error checking and parsing, so interleaving commands for 
  * different connections may cause problems.
  *
- * By Pete Warden <pete@petewarden.com> - March 8th 2010
- *
+
+ Licensed under the 2-clause (ie no advertising requirement) BSD license,
+ making it easy to reuse for commercial or GPL projects:
+ 
+ (c) Pete Warden <pete@petewarden.com> http://petewarden.typepad.com/ - Mar 11th 2010
+ 
+ Redistribution and use in source and binary forms, with or without modification, are
+ permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this 
+      list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice, this 
+      list of conditions and the following disclaimer in the documentation and/or 
+      other materials provided with the distribution.
+   3. The name of the author may not be used to endorse or promote products derived 
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+OF SUCH DAMAGE.
+ 
  */
 
 require_once("peteutils.php");
 
+// Each client command requires a unique ID, so that the server can reference it when
+// returning results. I use an incrementing counter to generate the ID
 $g_currentidcounter = 0;
+
+// These two arrays contain the data returned from the server in response to our
+// client commands. The result one is an associative map linking a command id to the
+// information returned for that command. I'd originally planned to handle firing off
+// multiple simultaneous outstanding commands, but that became complex to support and
+// wasn't needed for my usage. Instead, it supports an 'issue command 1', 'get results
+// of command 1', 'issue command 2', 'get results of command 2', ... pattern on the
+// caller's side, anything more complex may end up confusing it!
+// The $g_resultlines entries consist of a two-entry array, 'infoline' which contains
+// the data the server returned for that command and 'resultline' which holds any other
+// information like error messages that the server returned for that call.
 $g_resultlines = array();
 $g_infolines = array();
 
+// This function implements the basic client-calling primitive of IMAP, sending the
+// given string as a command pre-pended with a unique ID for the server to use as a
+// reference in the results it returns
 function handmadeimap_send_command($connection, $command)
 {
     global $g_currentidcounter;
@@ -49,6 +90,13 @@ function handmadeimap_send_command($connection, $command)
     return $commandid;
 }
 
+// Probably the ugliest function of the whole project, this started off simple but
+// ended up with a whole lot of scar tissue as I fixed bugs related to issues like
+// escaping string literals. Its basic form is a polling loop that sits waiting for
+// the server to return data. As data is returned it's associated with the command
+// ID, and parsed into data and information strings for that client call. Once a
+// complete result has been returned for the given command, the function returns with
+// the results. To detect an error, you need to call handmadeimap_was_command_ok()
 function handmadeimap_get_command_result($connection, $commandid)
 {
     global $g_resultlines;
@@ -159,6 +207,7 @@ function handmadeimap_get_command_result($connection, $commandid)
     return null;
 }
 
+// Checks the command's result to see if it succeeded or failed
 function handmadeimap_was_command_ok($commandresult)
 {
     if (!isset($commandresult))
@@ -174,6 +223,8 @@ function handmadeimap_was_command_ok($commandresult)
     return ($commandparts[1]=='OK');
 }
 
+// A set of utility functions that the module uses to provide access to a human-
+// readable error string in the event that something goes wrong
 $g_handmadeimap_error = null;
 function handmadeimap_set_error($error)
 {
@@ -192,6 +243,7 @@ function handmadeimap_was_ok()
     return (handmadeimap_get_error()==null);
 }
 
+// Returns a socket connection to the given mail server
 function handmadeimap_open_connection($serverurl, $serverport)
 {
     $fp = fsockopen($serverurl, $serverport, $errno, $errstr, 30);
@@ -206,11 +258,14 @@ function handmadeimap_open_connection($serverurl, $serverport)
     return $fp;
 }
 
+// Closes the mail server connection
 function handmadeimap_close_connection($connection)
 {
     fclose($connection);
 }
 
+// Sends the strange command that Yahoo needs for access to its IMAP email accounts. See
+// http://groups.google.com/group/mozilla.dev.apps.thunderbird/browse_thread/thread/546356554c73f8ca
 function handmadeimap_yahoo_command($connection)
 {
 	$yahoocommandid = handmadeimap_send_command($connection, 'ID ("GUID" "1")');
@@ -220,6 +275,7 @@ function handmadeimap_yahoo_command($connection)
 		handmadeimap_set_error("Yahoo Command failed with '".$yahoocommandresult['resultline']."'");
 }
 
+// Performas a standard LOGIN to the mail server
 function handmadeimap_login($connection, $user, $password)
 {
     $loginid = handmadeimap_send_command($connection, "LOGIN $user $password");
@@ -229,6 +285,7 @@ function handmadeimap_login($connection, $user, $password)
         handmadeimap_set_error("LOGIN failed with '".$loginresult['resultline']."'");
 }
 
+// Lists the folders available on this account
 function handmadeimap_list($connection)
 {
     $listid = handmadeimap_send_command($connection, 'LIST "" "*"');
@@ -246,6 +303,8 @@ function handmadeimap_list($connection)
     return $result;
 }
 
+// Chooses a folder for subsequent operations to act upon, and returns any other
+// information that the server returns about that folder
 function handmadeimap_select($connection, $mailboxname)
 {
     $selectid = handmadeimap_send_command($connection, 'SELECT "'.$mailboxname.'"');
@@ -282,6 +341,7 @@ function handmadeimap_select($connection, $mailboxname)
     return $result;
 }
 
+// Pulls out a list of message indices that were delivered after the given date
 function handmadeimap_search_since_date($connection, $date)
 {
     $searchid = handmadeimap_send_command($connection, 'SEARCH SINCE '.$date);
@@ -306,6 +366,7 @@ function handmadeimap_search_since_date($connection, $date)
     return $result;
 }
 
+// Finds the index of the earliest message after the given timestamp (only accurate to +- 24 hours)
 function handmadeimap_earliest_index_since_time($connection, $unixtime, $totalcount)
 {
     // The IMAP search ignores the time zone, so bump the time backwards by a day to avoid missing any
@@ -320,6 +381,9 @@ function handmadeimap_earliest_index_since_time($connection, $unixtime, $totalco
     return $minindex;
 }
 
+// IMAP result data is returned in a data structure defined by nested parentheses, in a lisp-esque manner.
+// The following functions implement a primitive parser, mostly used to turn ENVELOPE results into usable
+// information by the rest of the engine.
 function pull_string($line)
 {
     $result = '';
@@ -532,6 +596,8 @@ function handmadeimap_parse_envelope_line($infoline)
 
 }
 
+// This function pulls down the message information for the given indices and parses
+// the returned strings into usable data structures
 function handmadeimap_fetch_envelopes($connection, $firstindex, $lastindex)
 {
     $fetchcommand = "FETCH $firstindex:$lastindex (ENVELOPE)";
@@ -570,6 +636,8 @@ function create_envelope_recipients_xml($recipients, $role)
 	return $messagexml;
 }
 
+// Given a set of 'envelopes' containing the information for some messages, return
+// an XML string representing that message data
 function envelopes_to_xml($envelopes, $sentorreceived)
 {
     $messagexml = '';
@@ -627,6 +695,66 @@ function envelopes_to_xml($envelopes, $sentorreceived)
     return $messagexml;
 }
 
+// Given a set of 'envelopes' containing the information for some messages, return
+// a PHP data structure representing that message data. It looks something like this:
+// array( 
+//   [0] => array(
+//     'subject' => 'Hello Pete',
+//     'timestamp' => 1234567890,
+//     'from' => array('address' => 'pete@mailana.com', 'display' => 'Pete Warden'),
+//     'sourcefolder' => 'received',
+//     'to' => array( [0] => array( 'address' => 'pete@petewarden.com', 'display' => 'Pete Warden')),
+//     'cc' => array( [0] => array( 'address' => 'bob@example.com', 'display' => 'Bob Example')),
+//     'bcc' => array(),
+//     'sourceuid' => 'ABCDEF012345679',
+//   )
+//   ...
+// );
+//
+// The timestamp is in standard UNIX format, seconds from 1970. The sourceuid is the
+// unique identifier the ISP has given the message, and the sourcefolder is a way for
+// the calling code to keep track of whether you're fetching messages from a sent or
+// a received message folder
+function envelopes_to_data($envelopes, $sentorreceived)
+{
+    $result = array();
+    foreach ($envelopes as $headerinfo)
+    {
+        $subject = $headerinfo["subject"];
+
+        $imapdate = $headerinfo["date"];
+        $phpdate = strtotime($imapdate);
+
+        $from = $headerinfo["from"];
+        $fromcomponents = $from[0];
+        $fromaddress = $fromcomponents["address"];
+        $fromdisplay = $fromcomponents["display"];
+
+        $sourcefolder = $sentorreceived;
+
+        $to = $headerinfo["to"];
+        $cc = $headerinfo["cc"];
+        $bcc = $headerinfo["bcc"];
+
+        $sourceuid = $headerinfo['messageuid'];
+        
+        $result[] = array(
+            'subject' => $subject,
+            'timestamp' => $phpdate,
+            'from' => array('address' => $fromaddress, 'display' => $fromdisplay),
+            'sourcefolder' => $sourcefolder,
+            'to' => $to,
+            'cc' => $cc,
+            'bcc' => $bcc,
+            'sourceuid' => $sourceuid,
+        );
+    }
+    
+    return $result;
+}
+
+// Runs the envelope parsing code through a test message that originally caused a lot of problems,
+// thanks to its heavy use of quoted literals and parentheses
 function handmadeimap_test_envelope_parsing()
 {
     $testline = '* 123 FETCH (ENVELOPE ("Fri, 05 Jun 2009 06:39:46 -0400 (EDT)" "ViewSonic 24\" 1080p LCD $229.99, Flip Video Mino 60M Camcorder $89.99, Plantronics Bluetooth Headset $16.99,.." (("Buy.com Deals" NIL "buy.com_offers" "enews.buy.com")) (("Buy.com Deals" NIL "buy.com_offers" "enews.buy.com")) ((NIL NIL "Buycom-s7ou4ipo6sh" "checkout.l.google.com")) ((NIL NIL "Christophe-b7ou4ipo6sh" "checkout.l.google.com")) NIL NIL NIL "<22389195.945191244198463993.JavaMail.sierra-prod@cgl35.prod.google.com>"))';
