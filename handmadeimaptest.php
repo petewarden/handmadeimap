@@ -37,8 +37,6 @@
  * curl "http://localhost/handmadeimap/handmadeimaptest.php?user=pete%40mailana.com&password=yourpasswordhere&action=list&debug=true"
  * curl "http://localhost/handmadeimap/handmadeimaptest.php?user=petercwarden%40yahoo.com&password=yourpasswordhere&mailbox=inbox&action=totalcount"
  *
- * Pete Warden <pete@petewarden.com> - March 9th 2010
- *
  */
 
 require_once("peteutils.php");

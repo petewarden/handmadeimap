@@ -1,35 +1,46 @@
 <?php
 
-// Takes an email address and tries to extract the domain identifier for the organization. It mostly means taking everything
-// to the right of the @, but I also try to ignore any host more than one step below the top for known TLDs, so that
-// 'user@mail.somecompany.com' becomes 'somecompany.com' for example
-function get_canonical_domain_from_email_address($emailaddress)
-{
-	$emailaddress = strtolower($emailaddress);
-	
-	$emailparts = explode('@', $emailaddress);
-	if (count($emailparts)!=2)
-		return 'Unknown';
-	
-	$domain = $emailparts[1];
-	$domainparts = explode('.', $domain);
+/** 
+ * This module implements helper functions for dealing with mail server addresses:
+ *
+ * o Extracting a mail server domain from a full email address
+ * o Guessing the ISP and so the IMAP/POP settings needed for a given address
+ * o Looking at a domain's DNS records to tell if it's actually hosted by Google
+ *
+ * It currently only automatically recognizes the settings for Gmail, Yahoo, Hotmail
+ * and Fastmail accounts. It would be great to get more ISPs listed, if you do add
+ * your own please let me know and I'll make sure the master copy is updated. To add
+ * them edit $g_domaininfo
+ 
+ Licensed under the 2-clause (ie no advertising requirement) BSD license,
+ making it easy to reuse for commercial or GPL projects:
+ 
+ (c) Pete Warden <pete@petewarden.com> http://petewarden.typepad.com/ - Mar 11th 2010
+ 
+ Redistribution and use in source and binary forms, with or without modification, are
+ permitted provided that the following conditions are met:
 
-	$domainparts = array_reverse($domainparts);
-	
-	$tld = $domainparts[0];
-	
-	if (($tld=='com')||($tld=='net')||($tld=='org')||($tld=='edu'))
-	{
-		$result = $domainparts[1].'.'.$tld;
-	}
-	else
-	{
-		$result = $domain;
-	}
+   1. Redistributions of source code must retain the above copyright notice, this 
+      list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice, this 
+      list of conditions and the following disclaimer in the documentation and/or 
+      other materials provided with the distribution.
+   3. The name of the author may not be used to endorse or promote products derived 
+      from this software without specific prior written permission.
 
-	return $result;
-}
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, 
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+OF SUCH DAMAGE.
+ 
+ */
 
+// Update this array to have other ISPs be automatically recognized from their address
 $g_domainimapinfo = array(
 	'gmail.com' => array( 
         'host' => 'imap.gmail.com', 
@@ -78,6 +89,7 @@ $g_domainimapinfo = array(
     ),
 );
 
+// This array contains synonyms that actually point at known domains
 $g_domainaliases = array(
     'google.com' => 'gmail.com',
     'psmtp.com' => 'gmail.com',
@@ -85,6 +97,36 @@ $g_domainaliases = array(
     'messagingengine.com' => 'fastmail.fm',
 	'live.com' => 'hotmail.com',
 );
+
+// Takes an email address and tries to extract the domain identifier for the organization. It mostly means taking everything
+// to the right of the @, but I also try to ignore any host more than one step below the top for known TLDs, so that
+// 'user@mail.somecompany.com' becomes 'somecompany.com' for example
+function get_canonical_domain_from_email_address($emailaddress)
+{
+	$emailaddress = strtolower($emailaddress);
+	
+	$emailparts = explode('@', $emailaddress);
+	if (count($emailparts)!=2)
+		return 'Unknown';
+	
+	$domain = $emailparts[1];
+	$domainparts = explode('.', $domain);
+
+	$domainparts = array_reverse($domainparts);
+	
+	$tld = $domainparts[0];
+	
+	if (($tld=='com')||($tld=='net')||($tld=='org')||($tld=='edu'))
+	{
+		$result = $domainparts[1].'.'.$tld;
+	}
+	else
+	{
+		$result = $domain;
+	}
+
+	return $result;
+}
 
 function get_mailers_for_domain($domain)
 {
