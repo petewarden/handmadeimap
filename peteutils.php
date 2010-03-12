@@ -63,7 +63,8 @@ function pete_log_disable($module)
 function pete_log($module, $message)
 {
 	global $log_enabled_modules;
-	if (array_key_exists($module, $log_enabled_modules))
+	if (array_key_exists($module, $log_enabled_modules) && 
+		$log_enabled_modules[$module])
     {
         error_log($module.': '.$message);
     }

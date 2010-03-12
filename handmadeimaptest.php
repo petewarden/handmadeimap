@@ -37,6 +37,10 @@
  * curl "http://localhost/handmadeimap/handmadeimaptest.php?user=pete%40mailana.com&password=yourpasswordhere&action=list&debug=true"
  * curl "http://localhost/handmadeimap/handmadeimaptest.php?user=petercwarden%40yahoo.com&password=yourpasswordhere&mailbox=inbox&action=totalcount"
  *
+ * or via the command line:
+ *
+ * php handmadeimaptest.php -u searchbrowser@gmail.com -p yourpasswordhere -a list -d
+ *
  * Pete Warden <pete@petewarden.com> - March 9th 2010
  *
  */
@@ -45,6 +49,7 @@ require_once("peteutils.php");
 require_once("handmadeimap.php");
 require_once("handmadepop3.php");
 require_once("maildomainutils.php");
+require_once("cliargs.php");
 
 // A helper function to wrap the initial login and error checking for IMAP
 function create_imap_connection($mailserver, $port, $sendyahoocommand, $user, $password)
@@ -79,17 +84,134 @@ function create_pop3_connection($mailserver, $port, $user, $password)
 		die("LOGIN failed: ".handmadepop3_get_error()."\n");
 }
 
-// The URL arguments, with defaults for the optional ones
-$user = get_url_input('user');
-$password = get_url_input('password');
-$host = get_url_input('host', '');
-$port = get_url_input('port', '993');
-$protocol = get_url_input('protocol', 'imaps');
-$sendyahoocommand = (get_url_input('sendyahoocommand', 'false')=='true');
-$mailbox = get_url_input('mailbox', '[Gmail]/All Mail');
-$action = get_url_input('action');
-$dotiming = (get_url_input('dotiming', 'false')=='true');
-$debug = (get_url_input('debug', 'false')=='true');
+// Either grab the arguments from the URL or the command line
+if (php_sapi_name() !== 'cli')
+{
+	// The URL arguments, with defaults for the optional ones
+	$user = get_url_input('user');
+	$password = get_url_input('password');
+	$host = get_url_input('host', '');
+	$port = get_url_input('port', '993');
+	$protocol = get_url_input('protocol', 'imaps');
+	$sendyahoocommand = (get_url_input('sendyahoocommand', 'false')=='true');
+	$mailbox = get_url_input('mailbox', '[Gmail]/All Mail');
+	$action = get_url_input('action');
+	$dotiming = (get_url_input('dotiming', 'false')=='true');
+	$debug = (get_url_input('debug', 'false')=='true');
+	$startindex = get_url_input('startindex', 1);
+	$endindex = get_url_input('endindex', 10);
+	$date = get_url_input('date', '1-Jan-2010');
+	$time = get_url_input('time');
+	$earliesttime = get_url_input('earliesttime');
+}
+else
+{
+	$cliargs = array(
+		'user' => array(
+			'short' => 'u',
+			'type' => 'required',
+			'description' => 'The email address of the user',
+		),
+		'password' => array(
+			'short' => 'p',
+			'type' => 'required',
+			'description' => 'The email account\'s password',
+		),
+		'host' => array(
+			'short' => 'h',
+			'type' => 'optional',
+			'description' => 'The mail server to connect to',
+			'default' => '',
+		),
+		'port' => array(
+			'short' => 'p',
+			'type' => 'optional',
+			'description' => 'The port on the mail server to connect to',
+			'default' => '993',
+		),
+		'protocol' => array(
+			'short' => 'r',
+			'type' => 'optional',
+			'description' => 'The protocol to use, either imaps or pop3s',
+			'default' => 'imaps',
+		),
+		'sendyahoocommand' => array(
+			'short' => 'y',
+			'type' => 'switch',
+			'description' => 'Whether to use the Yahoo workaround to connect via IMAP',
+		),
+		'mailbox' => array(
+			'short' => 'm',
+			'type' => 'optional',
+			'description' => 'The folder to perform operations on',
+			'default' => '[Gmail]/All Mail',
+		),
+		'action' => array(
+			'short' => 'a',
+			'type' => 'optional',
+			'description' => 'The operation to run (list, totalcount, fetchheaders, fetchsince, indexsince)',
+			'default' => '[Gmail]/All Mail',
+		),
+		'dotiming' => array(
+			'short' => 't',
+			'type' => 'switch',
+			'description' => 'Whether to print out the time taken for the test',
+		),
+		'debug' => array(
+			'short' => 'd',
+			'type' => 'switch',
+			'description' => 'Whether to print out logging information',
+		),
+		'startindex' => array(
+			'short' => 's',
+			'type' => 'optional',
+			'description' => 'The index of the first piece of mail to fetch',
+			'default' => '1',
+		),
+		'endindex' => array(
+			'short' => 'e',
+			'type' => 'optional',
+			'description' => 'The index of the last piece of mail to fetch',
+			'default' => '10',
+		),
+		'date' => array(
+			'short' => 'z',
+			'type' => 'optional',
+			'description' => 'The date to cut off mail fetching',
+			'default' => '1-Jan-2010',
+		),
+		'time' => array(
+			'short' => 'x',
+			'type' => 'optional',
+			'description' => 'The time to cut off mail fetching',
+			'default' => '',
+		),
+		'earliesttime' => array(
+			'short' => 'w',
+			'type' => 'optional',
+			'description' => 'The time to cut off mail fetching for pop3',
+			'default' => '',
+		),
+	);
+
+	$options = cliargs_get_options($cliargs);
+
+	$user = $options['user'];
+	$password = $options['password'];
+	$host = $options['host'];
+	$port = $options['port'];
+	$protocol = $options['protocol'];
+	$sendyahoocommand = $options['sendyahoocommand'];
+	$mailbox = $options['mailbox'];
+	$action = $options['action'];
+	$dotiming = $options['dotiming'];
+	$debug = $options['debug'];
+	$startindex = $options['startindex'];
+	$endindex = $options['endindex'];
+	$date = $options['date'];
+	$time = $options['time'];
+	$earliesttime = $options['earliesttime'];
+}
 
 if ($debug)
 {
@@ -137,9 +259,6 @@ if ($protocol=='imaps')
 	}
 	else if ($action=='fetchheaders')
 	{
-		$startindex = get_url_input('startindex', 1);
-		$endindex = get_url_input('endindex', 10);
-
 		$fetchresult = handmadeimap_fetch_envelopes($connection, $startindex, $endindex);
 		if (!handmadeimap_was_ok())
 			die("FETCH failed: ".handmadeimap_get_error()."\n");
@@ -152,8 +271,6 @@ if ($protocol=='imaps')
 	}
 	else if ($action=='fetchsince')
 	{
-		$date = get_url_input('date', '1-Jan-2010');
-
 		$searchresult = handmadeimap_search_since_date($connection, $date);
 		if (!handmadeimap_was_ok())
 			die("SEARCH failed: ".handmadeimap_get_error()."\n");
@@ -162,7 +279,6 @@ if ($protocol=='imaps')
 	}
 	else if ($action=='indexsince')
 	{
-		$time = get_url_input('time');
 		$totalcount = $selectresult['totalcount'];
 
 		$searchresult = handmadeimap_earliest_index_since_time($connection, $time, $totalcount);
@@ -190,8 +306,6 @@ else if ($protocol=='pop3s')
 	}
 	else if ($action=='fetchheaders')
 	{
-		$earliesttime = get_url_input('earliesttime');
-
 		$fetchresult = handmadepop3_fetch_message_headers($connection, $earliesttime);
 		if (!handmadepop3_was_ok())
 			die("FETCH failed: ".handmadepop3_get_error()."\n");
