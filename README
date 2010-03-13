@@ -29,6 +29,12 @@ inner circle, giving you the information you need to build a better experience a
 invitations and privacy defaults. There's obviously plenty of other use cases, but please do 
 remember your users are giving you access to very sensitive information!
 
+* How can I try it for myself? *
+
+Download the code, and run the handmadeimaptest.php script, eg:
+
+php handmadeimaptest.php -u youremail@example.com -p yourpasswordhere -a list -d
+
 ****************************
  Licensed under the 2-clause (ie no advertising requirement) BSD license,
  making it easy to reuse for commercial or GPL projects:
