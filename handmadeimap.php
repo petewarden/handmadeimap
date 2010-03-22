@@ -275,7 +275,7 @@ function handmadeimap_yahoo_command($connection)
 		handmadeimap_set_error("Yahoo Command failed with '".$yahoocommandresult['resultline']."'");
 }
 
-// Performas a standard LOGIN to the mail server
+// Performs a standard LOGIN to the mail server
 function handmadeimap_login($connection, $user, $password)
 {
     $loginid = handmadeimap_send_command($connection, "LOGIN $user $password");
@@ -283,6 +283,27 @@ function handmadeimap_login($connection, $user, $password)
     $loginwasok = handmadeimap_was_command_ok($loginresult['resultline']);
     if (!$loginwasok)
         handmadeimap_set_error("LOGIN failed with '".$loginresult['resultline']."'");
+}
+
+// Performs a LOGIN using Google's XOAuth extension, as documented here:
+// http://sites.google.com/site/oauthgoog/Home/oauthimap
+function handmadeimap_login_xoauth($connection, $loginstring)
+{
+    $loginid = handmadeimap_send_command($connection, "AUTHENTICATE XOAUTH $loginstring");
+    $loginresult = handmadeimap_get_command_result($connection, $loginid);
+    $loginwasok = handmadeimap_was_command_ok($loginresult['resultline']);
+    if (!$loginwasok)
+        handmadeimap_set_error("LOGIN failed with '".$loginresult['resultline']."'");
+}
+
+// Returns the capabilities exposed by this server
+function handmadeimap_capability($connection)
+{
+    $capabilityid = handmadeimap_send_command($connection, "CAPABILITY");
+    $capabilityresult = handmadeimap_get_command_result($connection, $capabilityid);
+    $capabilitywasok = handmadeimap_was_command_ok($capabilityresult['resultline']);
+    if (!$capabilitywasok)
+        handmadeimap_set_error("CAPABILITY failed with '".$capabilityresult['resultline']."'");
 }
 
 // Lists the folders available on this account

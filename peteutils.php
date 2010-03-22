@@ -73,8 +73,9 @@ function pete_end_timer($dolog=true)
 }
 
 $log_enabled_modules = array(
-    'handmadeimap' => false,
+    'handmadeimap' => true,
     'accounts' => false,
+    'oauth' => false,
 );
 
 $log_print = false;
@@ -123,6 +124,42 @@ function make_cdata($text)
 function make_cdatatag($tagname, $text)
 {
 	return make_tag($tagname, make_cdata($text));
+}
+
+// Returns the current page's full URL. From http://blog.taragana.com/index.php/archive/how-to-find-the-full-url-of-the-page-in-php-in-a-platform-independent-and-configuration-independent-way/
+function get_current_url()
+{
+	$result = 'http';
+	$script_name = "";
+	if(isset($_SERVER['REQUEST_URI'])) 
+	{
+		$script_name = $_SERVER['REQUEST_URI'];
+	} 
+	else 
+	{
+		$script_name = $_SERVER['PHP_SELF'];
+		if($_SERVER['QUERY_STRING']>' ') 
+		{
+			$script_name .=  '?'.$_SERVER['QUERY_STRING'];
+		}
+	}
+	
+	if(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']=='on') 
+	{
+		$result .=  's';
+	}
+	$result .=  '://';
+	
+	if($_SERVER['SERVER_PORT']!='80')  
+	{
+		$result .= $_SERVER['HTTP_HOST'].':'.$_SERVER['SERVER_PORT'].$script_name;
+	} 
+	else 
+	{
+		$result .=  $_SERVER['HTTP_HOST'].$script_name;
+	}
+
+	return $result;
 }
 
 ?>
