@@ -11,7 +11,7 @@ extension allows:
 
 - Accessing Yahoo basic email accounts by implementing the Zimbra desktop variant of IMAP
 - Pulling down all recipients of a message without downloading the body
-- Possibly implementing extensions like Gmail's oAuth for IMAP
+- Implementing extensions like Gmail's oAuth for IMAP (see the enclosed example)
 
 * What are the downsides? *
 
