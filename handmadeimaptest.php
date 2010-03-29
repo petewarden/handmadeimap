@@ -98,7 +98,7 @@ function create_imap_connection($mailserver, $port, $sendyahoocommand, $user, $p
 }
 
 // A helper function to wrap the initial login and error checking for POP3
-function create_pop3_connection($mailserver, $port, $user, $password)
+function create_pop3_connection($host, $port, $user, $password)
 {
 	$connection = handmadepop3_open_connection($host, $port);
 	if ($connection==null)
@@ -107,6 +107,8 @@ function create_pop3_connection($mailserver, $port, $user, $password)
 	handmadepop3_login($connection, $user, $password);
 	if (!handmadepop3_was_ok())
 		die("LOGIN failed: ".handmadepop3_get_error()."\n");
+    
+    return $connection;
 }
 
 // Either grab the arguments from the URL or the command line
@@ -258,10 +260,10 @@ if ($host=='')
 
 pete_start_timer();
 
+
 if ($protocol=='imaps')
 {
-	$mailserver = "ssl://$host";
-
+    $mailserver = "ssl://$host";
     $connection = create_imap_connection($mailserver, $port, $sendyahoocommand, $user, $password);
 		
 	if ($action=='list')
@@ -317,7 +319,7 @@ if ($protocol=='imaps')
 }
 else if ($protocol=='pop3s')
 {
-    $connection = create_pop3_connection($mailserver, $port, $user, $password);
+    $connection = create_pop3_connection($host, $port, $user, $password);
 
 	if ($action=='list')
 	{

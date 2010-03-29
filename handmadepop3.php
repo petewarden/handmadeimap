@@ -794,27 +794,27 @@ class pop3_stream
 	}
 };
 
-$g_rawpop3_last_error = null;
+$g_handmadepop3_last_error = null;
 
-function rawpop3_was_ok()
+function handmadepop3_was_ok()
 {
-	global $g_rawpop3_last_error;
-	return empty($g_rawpop3_last_error);
+	global $g_handmadepop3_last_error;
+	return empty($g_handmadepop3_last_error);
 }
 
-function rawpop3_get_error()
+function handmadepop3_get_error()
 {
-	global $g_rawpop3_last_error;
-	return $g_rawpop3_last_error;
+	global $g_handmadepop3_last_error;
+	return $g_handmadepop3_last_error;
 }
 
-function rawpop3_set_error($error)
+function handmadepop3_set_error($error)
 {
-	global $g_rawpop3_last_error;
-	$g_rawpop3_last_error = $error;
+	global $g_handmadepop3_last_error;
+	$g_handmadepop3_last_error = $error;
 }
 
-function rawpop3_open_connection($host, $port)
+function handmadepop3_open_connection($host, $port)
 {
 	$pop3 = new pop3_class();
 	$pop3->hostname = $host;
@@ -826,39 +826,39 @@ function rawpop3_open_connection($host, $port)
 	$openerror = $pop3->Open();
 	if (!empty($openerror))
 	{
-		rawpop3_set_error($openerror);
+		handmadepop3_set_error($openerror);
 		return null;
 	}
 
 	return $pop3;
 }
 
-function rawpop3_close_connection($pop3)
+function handmadepop3_close_connection($pop3)
 {
 	$closeerror = $pop3->Close();
 	if (!empty($closeerror))
-		rawpop3_set_error($closeerror);
+		handmadepop3_set_error($closeerror);
 }
 
-function rawpop3_login($pop3, $user, $password)
+function handmadepop3_login($pop3, $user, $password)
 {
 	$loginerror = $pop3->Login($user, $password, 0);
 	if (!empty($loginerror))
-		rawpop3_set_error($loginerror);
+		handmadepop3_set_error($loginerror);
 }
 
-function rawpop3_get_message_count($pop3)
+function handmadepop3_get_message_count($pop3)
 {
 	$statisticserror = $pop3->Statistics($messagecount, $size);
 	if (!empty($statisticserror))
-		rawpop3_set_error($statisticserror);
+		handmadepop3_set_error($statisticserror);
 	
 	return $messagecount;
 }
 
-function rawpop3_fetch_message_headers($pop3, $earliesttime=0)
+function handmadepop3_fetch_message_headers($pop3, $earliesttime=0)
 {
-	$totalcount = rawpop3_get_message_count($pop3);
+	$totalcount = handmadepop3_get_message_count($pop3);
 
 	$result = array();
 	for ($index = 1; $index<=$totalcount; $index+=1)
@@ -866,7 +866,7 @@ function rawpop3_fetch_message_headers($pop3, $earliesttime=0)
 		$retrieveerror = $pop3->RetrieveMessage($index, $headerlines, $dummy, 0);
 		if (!empty($retrieveerror))
 		{
-			rawpop3_set_error($retrieveerror);
+			handmadepop3_set_error($retrieveerror);
 			return null;
 		}
 		

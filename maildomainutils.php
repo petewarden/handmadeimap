@@ -240,4 +240,39 @@ function get_local_name_for_address($address)
 	return $parts[0];
 }
 
+function extract_address_from_string($full)
+{
+	$matchcount = preg_match_all("/(.*)<[^\._a-zA-Z0-9-]*([\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+).*>/i", $full, $matches);
+	if ($matchcount)
+	{
+		$address = $matches[2][0];
+		$display = $matches[1][0];
+	}
+	else
+	{
+		$matchcount = preg_match_all("/[\._a-zA-Z0-9-#+]+@[\._a-zA-Z0-9-]+/i", $full, $matches);
+		if ($matchcount)
+		{
+			$address = $matches[0][0];
+			$display = $address;
+		}
+		else
+		{
+			$matchcount = preg_match_all("/([a-z]).* ([a-z]+)/i", $full, $matches);
+			if ($matchcount)
+			{
+				$address = strtolower($matches[1][0].$matches[2][0])."@local";
+				$display = $full;
+			}
+			else
+			{
+				$address = $full;
+				$display = $full;
+			}
+		}
+	}
+	
+	return array( "address" => $address, "display" => $display);
+}
+
 ?>
