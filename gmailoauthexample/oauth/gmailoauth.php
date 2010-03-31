@@ -133,7 +133,13 @@ class GmailOAuth {
 
         $requesturl = $req->to_url();
         
-        $result = base64_encode($requesturl);
+        $requestparts = explode('?', $requesturl);
+        $oauthparamslist = explode('&', $requestparts[1]);
+        $oauthparamsstring = implode(',', $oauthparamslist);
+        
+        $clientrequest = 'GET '.$url.' '.$oauthparamsstring;
+        
+        $result = base64_encode($clientrequest);
         
         return $result;
     }/*}}}*/

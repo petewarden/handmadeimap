@@ -250,6 +250,7 @@ function handle_gmail_oauth()
         $mailserver = 'ssl://'.$host;
         $port = $imapinfo['port'];
         $protocol = $imapinfo['protocol'];
+        $mailbox = '[Gmail]/All Mail';
 
         $connection = handmadeimap_open_connection($mailserver, $port);
         if ($connection==null)
@@ -263,6 +264,10 @@ function handle_gmail_oauth()
         if (!handmadeimap_was_ok())
             die("LOGIN failed: ".handmadeimap_get_error()."\n");
         
+        $selectresult = handmadeimap_select($connection, $mailbox);
+        if (!handmadeimap_was_ok())
+            die("SELECT failed: ".handmadeimap_get_error()."\n");
+
         $startindex = 1;
         $endindex = 10;
         
