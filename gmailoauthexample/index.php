@@ -37,11 +37,14 @@ OF SUCH DAMAGE.
  
  */
 
-require ('./config.php');
-require ('../peteutils.php');
-require ('./oauth/gmailoauth.php');
-require ('../handmadeimap.php');
-require ('../maildomainutils.php');
+require_once ('./config.php');
+require_once ('../peteutils.php');
+require_once ('./oauth/gmailoauth.php');
+require_once ('../handmadeimap.php');
+require_once ('../maildomainutils.php');
+require_once ('./utils.php');
+
+suppress_date_warning();
 
 // Returns information about the oAuth state for the current user. This includes whether the process
 // has been started, if we're waiting for the user to complete the authorization page on the remote
@@ -233,54 +236,60 @@ function handle_gmail_oauth()
         $accesstoken = $oauthstate['access_token'];
         $accesstokensecret = $oauthstate['access_token_secret'];
 
-		$to = new GmailOAuth(
-			GOOGLE_API_KEY_PUBLIC, 
-			GOOGLE_API_KEY_PRIVATE,
-			$accesstoken,
-			$accesstokensecret
-		);
+        $connection = gmail_login($emailaddress, $accesstoken, $accesstokensecret);
         
-        $loginstring = $to->getLoginString($emailaddress);
+        $receivedmailbox = 'Inbox';
+        $received = fetch_senders_and_recipients($connection, $receivedmailbox, 500);
+        $receivedfrom = $received['from'];
 
-        $imapinfo = get_imap_info_for_address($emailaddress);
-        if ($imapinfo==null)
-            die("Can't find info for $emailaddress\n");
+        $sentmailbox = '[Gmail]/Sent Mail';
+        $sent = fetch_senders_and_recipients($connection, $sentmailbox, 500);
+        $sentto = $sent['to'];
+        $sentfrom = $sent['from'];
 
-        $host = $imapinfo['host'];
-        $mailserver = 'ssl://'.$host;
-        $port = $imapinfo['port'];
-        $protocol = $imapinfo['protocol'];
-        $mailbox = '[Gmail]/All Mail';
-
-        $connection = handmadeimap_open_connection($mailserver, $port);
-        if ($connection==null)
-            die("Connection failed: ".handmadeimap_get_error()."\n");
-
-        handmadeimap_capability($connection);
-        if (!handmadeimap_was_ok())
-            die("CAPABILITY failed: ".handmadeimap_get_error()."\n");
-
-        handmadeimap_login_xoauth($connection, $loginstring);
-        if (!handmadeimap_was_ok())
-            die("LOGIN failed: ".handmadeimap_get_error()."\n");
+        $rankedfriends = array();
+        foreach ($receivedfrom as $address => $receivedinfo)
+        {
+            if (!isset($sentto[$address]))
+                continue;
+            
+            if (isset($sentfrom[$address]))
+                continue;
+            
+            $sentinfo = $sentto[$address];
+            
+            $senttocount = $sentinfo['count'];
+            $receivedfromcount = $receivedinfo['count'];
+            $score = min($senttocount, $receivedfromcount);
+            if ($score<1)
+                continue;
+                
+            $display = $sentinfo['display'];
+            
+            $rankedfriends[] = array(
+                'address' => $address,
+                'display' => $display,
+                'score' => $score,
+            );
+        }
         
-        $selectresult = handmadeimap_select($connection, $mailbox);
-        if (!handmadeimap_was_ok())
-            die("SELECT failed: ".handmadeimap_get_error()."\n");
-
-        $startindex = 1;
-        $endindex = 10;
+        $sortfunction = create_function('$a, $b', 'if ($a["score"]<$b["score"]) return 1; else return -1;'); 
+        usort($rankedfriends, $sortfunction);
         
-        $fetchresult = handmadeimap_fetch_envelopes($connection, $startindex, $endindex);
-		if (!handmadeimap_was_ok())
-			die("FETCH failed: ".handmadeimap_get_error()."\n");
-		
-		$messagexml = envelopes_to_xml($fetchresult, 'received');
-
-        $output = htmlspecialchars($messagexml);
-        $output = str_replace("\n", "<br>", $output);
+        print '<h3>Your friends ranked by how often you email each other</h3>';
+        print '<br>';
+        print "\n";
         
-        print $output;
+        foreach ($rankedfriends as $friendinfo)
+        {
+            $address = $friendinfo['address'];
+            $display = $friendinfo['display'];
+            $score = $friendinfo['score'];
+            
+            print htmlspecialchars('<'.$address.'> "'.$display.'" - '.$score);
+            print '<br>';
+            print "\n";
+        }
 	}
 		
 }
