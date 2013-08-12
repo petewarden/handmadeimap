@@ -36,7 +36,7 @@ Download the code, and run the handmadeimaptest.php script, eg:
 php handmadeimaptest.php -u youremail@example.com -p yourpasswordhere -a list -d
 
 ****************************
- Licensed under the 2-clause (ie no advertising requirement) BSD license,
+ Licensed under the 3-clause (ie no advertising requirement) BSD license,
  making it easy to reuse for commercial or GPL projects:
  
  (c) Pete Warden <pete@petewarden.com> http://petewarden.typepad.com/ - Mar 11th 2010
